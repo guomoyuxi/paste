@@ -227,6 +227,8 @@ body {
     align-items: flex-start;
     gap: 12px;
     position: relative;
+    content-visibility: auto;
+    contain-intrinsic-size: 64px;
 }
 
 .item-card:hover {

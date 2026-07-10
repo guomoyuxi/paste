@@ -238,6 +238,18 @@ function renderItems() {
     // 使用 requestAnimationFrame 避免阻塞主线程
     requestAnimationFrame(() => {
         container.innerHTML = items.map(item => renderItemCard(item)).join('');
+        // 延迟设置图片 src：先让 DOM 渲染完成（无 base64 大字符串），再填充图片
+        const imgs = container.querySelectorAll('.item-image-thumb[data-id]');
+        if (imgs.length > 0) {
+            const itemMap = {};
+            items.forEach(i => { if (i.type === 'image') itemMap[i.id] = i; });
+            requestAnimationFrame(() => {
+                imgs.forEach(img => {
+                    const item = itemMap[img.dataset.id];
+                    if (item) img.src = `data:image/png;base64,${item.preview}`;
+                });
+            });
+        }
     });
 }
 
@@ -249,7 +261,8 @@ function renderItemCard(item) {
 
     let previewHtml;
     if (item.type === 'image') {
-        previewHtml = `<img class="item-image-thumb" src="data:image/png;base64,${item.preview}" alt="图片" />`;
+        // 不在 HTML 中嵌入 base64，渲染后通过 JS 设置 src（避免大字符串拖慢 innerHTML 解析）
+        previewHtml = `<img class="item-image-thumb" data-id="${item.id}" alt="图片" loading="lazy" />`;
     } else {
         previewHtml = `<div class="item-preview">${escapeHtml(item.preview || '')}</div>`;
     }
@@ -288,9 +301,7 @@ function formatTime(isoStr) {
 }
 
 function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function showContextMenu(e, id) {
