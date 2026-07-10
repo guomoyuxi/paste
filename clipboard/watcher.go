@@ -18,13 +18,13 @@ type ClipChange struct {
 }
 
 type Watcher struct {
-	interval   time.Duration
-	lastTextHash string
+	interval      time.Duration
+	lastTextHash  string
 	lastImageHash string
-	onChange    func(ClipChange)
-	stopCh     chan struct{}
-	mu         sync.Mutex
-	running    bool
+	onChange      func(ClipChange)
+	stopCh        chan struct{}
+	mu            sync.Mutex
+	running       bool
 }
 
 func NewWatcher(interval time.Duration, onChange func(ClipChange)) *Watcher {

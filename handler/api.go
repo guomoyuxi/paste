@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"log"
@@ -35,12 +36,6 @@ func (h *APIHandler) handleItems(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
-		}
-		// 对图片类型，preview 返回 base64 缩略图
-		for i := range items {
-			if items[i].Type == "image" && len(items[i].Preview) > 0 && items[i].Preview[0] != 'd' {
-				// Preview 存的是原始数据，需要转 base64
-			}
 		}
 		writeJSON(w, http.StatusOK, items)
 
@@ -94,7 +89,11 @@ func (h *APIHandler) handleItemDetail(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		item, err := h.store.Get(id)
 		if err != nil {
-			writeError(w, http.StatusNotFound, "not found")
+			if err == sql.ErrNoRows {
+				writeError(w, http.StatusNotFound, "not found")
+			} else {
+				writeError(w, http.StatusInternalServerError, err.Error())
+			}
 			return
 		}
 		// 返回完整内容
@@ -167,7 +166,11 @@ func (h *APIHandler) handlePaste(w http.ResponseWriter, r *http.Request) {
 
 	item, err := h.store.Get(id)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "not found")
+		if err == sql.ErrNoRows {
+			writeError(w, http.StatusNotFound, "not found")
+		} else {
+			writeError(w, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 

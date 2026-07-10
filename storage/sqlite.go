@@ -117,10 +117,11 @@ func (s *Store) List(filterType string, limit int) ([]ClipItem, error) {
 	if limit <= 0 {
 		limit = 500
 	}
-	query := `SELECT id, type, preview, is_favorite, retention, created_at, expires_at FROM clipboard_items`
+	// 过滤已过期且未收藏的条目（收藏项 expires_at 为 NULL，天然不会被排除）
+	query := `SELECT id, type, preview, is_favorite, retention, created_at, expires_at FROM clipboard_items WHERE (expires_at IS NULL OR expires_at >= datetime('now'))`
 	args := []interface{}{}
 	if filterType != "" {
-		query += ` WHERE type = ?`
+		query += ` AND type = ?`
 		args = append(args, filterType)
 	}
 	query += ` ORDER BY created_at DESC LIMIT ?`

@@ -198,6 +198,10 @@ void cgoSetupWindowDelegate() {
     debugLog([NSString stringWithFormat:@"SetupWindowDelegate: 发现 %lu 个窗口", (unsigned long)windows.count]);
     for (NSWindow *window in windows) {
         debugLog([NSString stringWithFormat:@"  窗口 visible=%d title=%@", (int)window.visible, window.title]);
+        // 仅替换主窗口的关闭按钮，避免触碰 webview 内部窗口导致崩溃
+        if (![window.title isEqualToString:@"Paste - 剪切板管理"]) {
+            continue;
+        }
         // 替换关闭按钮的行为：点击关闭按钮时隐藏窗口而非关闭
         NSButton *closeBtn = [window standardWindowButton:NSWindowCloseButton];
         if (closeBtn) {
