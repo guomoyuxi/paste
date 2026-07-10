@@ -185,7 +185,7 @@ func main() {
 	w.Bind("getAppInfo", func() map[string]string {
 		return map[string]string{
 			"name":    "Paste",
-			"version": "1.0.1",
+			"version": "1.0.2",
 		}
 	})
 
