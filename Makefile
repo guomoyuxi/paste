@@ -58,6 +58,9 @@ dmg: app
 	hdiutil create -volname "Paste" -srcfolder $(BUILD_DIR)/dmg_temp_$(ARCH_SUFFIX) -ov -format UDZO $$DMG_PATH; \
 	rm -rf $(BUILD_DIR)/dmg_temp_$(ARCH_SUFFIX); \
 	echo "DMG 安装包构建完成: $$DMG_PATH"
+	@# 去除隔离属性，避免 macOS Gatekeeper 标记为"已损坏"
+	xattr -cr $(BUILD_DIR)/Paste-$(VERSION)-$(ARCH_SUFFIX).dmg
+	@echo "已清除 DMG 隔离属性"
 
 clean:
 	rm -rf $(BUILD_DIR)
