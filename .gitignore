@@ -1,0 +1,26 @@
+# 构建产物
+build/
+*.dmg
+
+# 开发临时文件
+*.log
+/tmp/
+
+# 数据库
+*.db
+*.db-journal
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Go
+vendor/
+
+# 应用运行时文件
+.lock
+.port
+.pid

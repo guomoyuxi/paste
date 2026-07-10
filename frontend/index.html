@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paste - 剪切板管理</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="app-title">✂ Paste</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-filter="">
+                    <span class="nav-icon">📋</span> 全部
+                </a>
+                <a href="#" class="nav-item" data-filter="text">
+                    <span class="nav-icon">📝</span> 文本
+                </a>
+                <a href="#" class="nav-item" data-filter="image">
+                    <span class="nav-icon">🖼️</span> 图片
+                </a>
+                <a href="#" class="nav-item" data-filter="favorite">
+                    <span class="nav-icon">⭐</span> 收藏
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="btn-settings" class="btn-icon" title="设置">⚙️</button>
+                <button id="btn-minimize" class="btn-icon" title="最小化到状态栏">➖</button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main">
+            <!-- 顶部工具栏 -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="搜索剪切板内容..." />
+                </div>
+                <div class="toolbar-actions">
+                    <button id="btn-clear-all" class="btn btn-danger" title="清空所有">清空</button>
+                    <button id="btn-clear-unfav" class="btn btn-warn" title="清空非收藏项">清空非收藏</button>
+                </div>
+            </div>
+
+            <!-- 内容列表 -->
+            <div class="content" id="content-list">
+                <div class="empty-state" id="empty-state">
+                    <p>暂无剪切板记录</p>
+                    <p class="hint">复制内容后自动保存到这里</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- 设置面板 -->
+        <div class="modal-overlay" id="settings-modal" style="display:none;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>设置</h2>
+                    <button class="btn-close" id="btn-close-settings">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-item">
+                        <label>默认保留时长</label>
+                        <select id="setting-retention">
+                            <option value="1h">1 小时</option>
+                            <option value="1d">1 天</option>
+                            <option value="7d">7 天</option>
+                            <option value="30d" selected>30 天</option>
+                            <option value="forever">永久</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>快捷键</label>
+                        <span class="kbd">⌘⇧V</span>
+                        <span class="hint">呼出/隐藏窗口</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图片预览 -->
+        <div class="modal-overlay" id="image-preview" style="display:none;">
+            <div class="image-preview-container">
+                <button class="btn-close" id="btn-close-preview">&times;</button>
+                <img id="preview-img" src="" alt="预览" />
+            </div>
+        </div>
+
+        <!-- 确认对话框 -->
+        <div class="modal-overlay" id="confirm-modal" style="display:none;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>确认</h2>
+                    <button class="btn-close" id="btn-close-confirm">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirm-message"></p>
+                </div>
+                <div class="modal-footer">
+                    <button id="btn-confirm-cancel" class="btn">取消</button>
+                    <button id="btn-confirm-ok" class="btn btn-danger">确定</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div class="toast" id="toast" style="display:none;"></div>
+
+        <!-- 右键菜单 -->
+        <div class="context-menu" id="context-menu" style="display:none;">
+            <a href="#" class="ctx-item" data-action="copy">📋 复制到剪切板</a>
+            <a href="#" class="ctx-item" data-action="favorite">⭐ 收藏/取消收藏</a>
+            <a href="#" class="ctx-item ctx-danger" data-action="delete">🗑️ 删除</a>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

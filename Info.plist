@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>zh_CN</string>
+    <key>CFBundleExecutable</key>
+    <string>paste</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.paste.app</string>
+    <key>CFBundleName</key>
+    <string>Paste</string>
+    <key>CFBundleDisplayName</key>
+    <string>Paste</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.13</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Paste 需要访问剪切板来保存复制的历史记录</string>
+    <key>NSAccessibilityUsageDescription</key>
+    <string>Paste 需要辅助功能权限来注册全局快捷键</string>
+</dict>
+</plist>
