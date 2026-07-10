@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
     bindEvents();
 
-    // 每3秒自动刷新（仅在数据变化时重渲染）
-    setInterval(loadItems, 3000);
+    // 每5秒轻量级轮询（有数据变化才重渲染）
+    setInterval(pollItems, 5000);
 });
 
 function bindEvents() {
@@ -25,9 +25,9 @@ function bindEvents() {
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
             currentFilter = el.dataset.filter;
-            // 切换筛选时重置 hash，强制重新渲染
-            lastItemsHash = '';
-            renderItems();
+            // CSS 驱动标签筛选：仅更新 data-filter 属性，浏览器自动处理显隐
+            document.getElementById('content-list').dataset.filter = currentFilter;
+            updateEmptyState();
         });
     });
 
@@ -37,7 +37,8 @@ function bindEvents() {
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => {
             searchQuery = e.target.value.toLowerCase();
-            renderItems();
+            applySearch();
+            updateEmptyState();
         }, 200);
     });
 
@@ -149,12 +150,11 @@ function showConfirm(message, onConfirm) {
 }
 
 // === API 调用 ===
+let pollTimer = null;
 async function loadItems() {
     try {
-        const url = currentFilter && currentFilter !== 'favorite'
-            ? `/api/items?type=${currentFilter}`
-            : '/api/items';
-        const res = await fetch(url);
+        // 始终加载全部数据，过滤在前端完成（标签切换即时响应）
+        const res = await fetch('/api/items');
         const items = await res.json();
         // 检测数据是否变化，避免不必要的重渲染
         const hash = items.map(i => i.id + ':' + i.isFavorite).join(',');
@@ -164,6 +164,21 @@ async function loadItems() {
         renderItems();
     } catch (e) {
         console.error('加载失败:', e);
+    }
+}
+
+// 轻量级轮询：只检查条目数量和最新ID，有变化才加载完整数据
+async function pollItems() {
+    try {
+        const res = await fetch('/api/items');
+        const items = await res.json();
+        const hash = items.map(i => i.id + ':' + i.isFavorite).join(',');
+        if (hash === lastItemsHash) return;
+        lastItemsHash = hash;
+        allItems = items;
+        renderItems();
+    } catch (e) {
+        // 静默失败，不打扰用户
     }
 }
 
@@ -208,49 +223,124 @@ async function deleteItem(id) {
 }
 
 // === 渲染 ===
+// 策略：DOM 节点只创建一次，切换标签/搜索时用 display 控制显隐，
+// 避免图片被重新解码（这是卡顿的根因）
+const domCache = {}; // id -> {el, item} 已创建的卡片节点
+
 function renderItems() {
     const container = document.getElementById('content-list');
-    let items = allItems || [];
+    const allData = allItems || [];
 
-    // 收藏筛选
-    if (currentFilter === 'favorite') {
-        items = items.filter(item => item.isFavorite);
-    }
+    // 收集当前数据中的所有 ID（用于检测已删除的条目）
+    const currentIds = new Set(allData.map(i => String(i.id)));
 
-    // 搜索过滤
-    if (searchQuery) {
-        items = items.filter(item => {
-            const preview = (item.preview || '').toLowerCase();
-            return preview.includes(searchQuery);
+    // 1. 移除已不存在的条目节点
+    Object.keys(domCache).forEach(id => {
+        if (!currentIds.has(id)) {
+            if (domCache[id].el.parentNode) {
+                domCache[id].el.remove();
+            }
+            delete domCache[id];
+        }
+    });
+
+    // 2. 为新条目创建 DOM 节点（增量，不全量重建）
+    const newIds = [];
+    allData.forEach(item => {
+        const idStr = String(item.id);
+        if (!domCache[idStr]) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = renderItemCard(item).trim();
+            const el = tmp.firstChild;
+            domCache[idStr] = { el, item };
+            newIds.push(idStr);
+        } else {
+            // 更新收藏状态（收藏图标和 data-favorite 属性可能变化）
+            const cached = domCache[idStr];
+            if (cached.item.isFavorite !== item.isFavorite) {
+                const favEl = cached.el.querySelector('.item-favorite');
+                if (favEl) favEl.textContent = item.isFavorite ? '⭐' : '☆';
+                cached.el.dataset.favorite = item.isFavorite;
+                cached.item.isFavorite = item.isFavorite;
+            }
+        }
+    });
+
+    // 3. 如果有新条目，按 allData 顺序重新排列 DOM
+    // 只在有新条目时才重排，避免每次轮询都触发 reflow
+    if (newIds.length > 0) {
+        let prevEl = null;
+        allData.forEach(item => {
+            const idStr = String(item.id);
+            const el = domCache[idStr].el;
+            if (prevEl) {
+                if (prevEl.nextElementSibling !== el) {
+                    prevEl.after(el);
+                }
+            } else {
+                if (container.firstChild !== el) {
+                    container.prepend(el);
+                }
+            }
+            prevEl = el;
+        });
+        // 为新创建的图片节点延迟设置 src
+        requestAnimationFrame(() => {
+            newIds.forEach(idStr => {
+                const cached = domCache[idStr];
+                if (cached && cached.item.type === 'image') {
+                    const img = cached.el.querySelector('.item-image-thumb');
+                    if (img) img.src = `data:image/png;base64,${cached.item.preview}`;
+                }
+            });
         });
     }
 
-    if (items.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <p>暂无剪切板记录</p>
-                <p class="hint">复制内容后自动保存到这里</p>
-            </div>`;
-        return;
-    }
+    // 4. 标签筛选由 CSS 驱动（data-filter 属性），搜索筛选用 class 控制
+    //    无需 JS 逐项切换 display，避免大量 reflow
+    applySearch();
+    updateEmptyState();
+}
 
-    // 一次性生成所有 HTML（事件通过事件委托处理，无需逐个绑定）
-    // 使用 requestAnimationFrame 避免阻塞主线程
-    requestAnimationFrame(() => {
-        container.innerHTML = items.map(item => renderItemCard(item)).join('');
-        // 延迟设置图片 src：先让 DOM 渲染完成（无 base64 大字符串），再填充图片
-        const imgs = container.querySelectorAll('.item-image-thumb[data-id]');
-        if (imgs.length > 0) {
-            const itemMap = {};
-            items.forEach(i => { if (i.type === 'image') itemMap[i.id] = i; });
-            requestAnimationFrame(() => {
-                imgs.forEach(img => {
-                    const item = itemMap[img.dataset.id];
-                    if (item) img.src = `data:image/png;base64,${item.preview}`;
-                });
-            });
+// 搜索筛选：仅切换 class，CSS 控制显隐
+function applySearch() {
+    const allData = allItems || [];
+    for (let i = 0; i < allData.length; i++) {
+        const item = allData[i];
+        const idStr = String(item.id);
+        const cached = domCache[idStr];
+        if (!cached) continue;
+        const matches = !searchQuery || (item.preview || '').toLowerCase().includes(searchQuery);
+        cached.el.classList.toggle('search-hidden', !matches);
+    }
+}
+
+// 空状态：纯 JS 计算可见数量，不触发 reflow
+function updateEmptyState() {
+    const container = document.getElementById('content-list');
+    const visibleCount = (allItems || []).filter(item => matchesFilter(item)).length;
+    let emptyState = container.querySelector('.empty-state');
+    if (visibleCount === 0) {
+        if (!emptyState) {
+            emptyState = document.createElement('div');
+            emptyState.className = 'empty-state';
+            emptyState.innerHTML = '<p>暂无剪切板记录</p><p class="hint">复制内容后自动保存到这里</p>';
+            container.appendChild(emptyState);
         }
-    });
+    } else if (emptyState) {
+        emptyState.remove();
+    }
+}
+
+function matchesFilter(item) {
+    if (currentFilter === 'text' && item.type !== 'text') return false;
+    if (currentFilter === 'image' && item.type !== 'image') return false;
+    if (currentFilter === 'favorite' && !item.isFavorite) return false;
+    if (searchQuery) {
+        const preview = (item.preview || '').toLowerCase();
+        if (!preview.includes(searchQuery)) return false;
+    }
+    return true;
 }
 
 function renderItemCard(item) {
@@ -268,7 +358,7 @@ function renderItemCard(item) {
     }
 
     return `
-        <div class="item-card" data-id="${item.id}" data-type="${item.type}">
+        <div class="item-card" data-id="${item.id}" data-type="${item.type}" data-favorite="${item.isFavorite}">
             <div class="item-type-badge">${typeIcon}</div>
             <div class="item-body">
                 ${previewHtml}

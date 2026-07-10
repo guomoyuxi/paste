@@ -235,6 +235,18 @@ body {
     background: var(--card-hover);
 }
 
+/* 标签筛选：CSS 驱动，切换 data-filter 属性即可，零 JS 开销 */
+.content[data-filter="text"] .item-card[data-type="image"],
+.content[data-filter="image"] .item-card[data-type="text"],
+.content[data-filter="favorite"] .item-card:not([data-favorite="true"]) {
+    display: none;
+}
+
+/* 搜索筛选：通过 class 控制 */
+.item-card.search-hidden {
+    display: none;
+}
+
 .item-type-badge {
     font-size: 20px;
     flex-shrink: 0;

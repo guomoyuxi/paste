@@ -1,5 +1,5 @@
 APP_NAME := paste
-VERSION := 1.0.2
+VERSION := 1.1.0
 BUILD_DIR := build
 APP_BUNDLE := $(BUILD_DIR)/Paste.app
 
